@@ -1,16 +1,31 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, Image } from 'react-native';
-import { Link, router } from 'expo-router';
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, useWindowDimensions, Platform, Image, Alert } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 
 export default function SignIn() {
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 768;
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const handleSignIn = () => {
-    router.replace('/(tabs)');
+  const handleSignIn = async () => {
+    try {
+      setError('');
+      await signInWithEmailAndPassword(auth, email, password);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      setError(err.message);
+      Alert.alert('sign in error', err.message);
+    }
   };
 
   return (
     <View style={styles.container}>
+      
       {!isSmallScreen && (
         <View style={styles.imageContainer}>
           <Image
@@ -31,18 +46,24 @@ export default function SignIn() {
         </View>
 
         <View style={styles.form}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <TextInput
             style={styles.input}
             placeholder="Email"
             placeholderTextColor="#666"
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             style={styles.input}
             placeholder="Password"
             placeholderTextColor="#666"
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
 
           <TouchableOpacity style={styles.forgotPassword}>
@@ -78,9 +99,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     flex: 1,
     display: 'none',
-    // '@media (min-width: 768px)': {
-    //   display: 'flex',
-    // },
   },
   backgroundImage: {
     flex: 1,
@@ -130,6 +148,11 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontFamily: 'Inter_400Regular',
   },
   input: {
     height: Platform.OS === 'web' ? 52 : 44,

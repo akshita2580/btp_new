@@ -1,7 +1,8 @@
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, useWindowDimensions, Platform, ScrollView } from 'react-native';
-import { ChevronLeft, Plus, X, Phone, Heart } from 'lucide-react-native';
+import { ChevronLeft, Plus, Phone, Heart } from 'lucide-react-native';
 import { useState } from 'react';
 import { useContacts } from '../../context/ContactsContext';
+import type { Contact } from '../../context/ContactsContext';
 
 export default function ContactsScreen() {
   const { width } = useWindowDimensions();
@@ -97,7 +98,7 @@ export default function ContactsScreen() {
         </View>
 
         <View style={styles.contactList}>
-          {contacts.map((contact) => (
+          {contacts.map((contact: Contact) => (
             <View key={contact.id} style={styles.contactCard}>
               <View style={styles.contactInfo}>
                 <View style={styles.contactHeader}>

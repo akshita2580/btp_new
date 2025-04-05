@@ -7,7 +7,7 @@ export default function HomeScreen() {
   const isSmallScreen = width < 768;
 
   const handleUpdateContacts = () => {
-    router.push('/update-contacts');
+    router.push('/(tabs)/');
   };
 
   return (

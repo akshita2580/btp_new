@@ -1,64 +1,62 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db, auth } from '@/config/firebase';
 
 type Contact = {
   id: string;
   name: string;
   phone: string;
-  relation: string;
+  email: string;
+  createdAt: Date;
 };
 
 type ContactsContextType = {
   contacts: Contact[];
-  emergencyMessage: string;
-  addContact: (contact: Omit<Contact, 'id'>) => void;
-  updateContact: (contact: Contact) => void;
-  removeContact: (id: string) => void;
-  updateEmergencyMessage: (message: string) => void;
+  loading: boolean;
+  error: string | null;
 };
 
 const ContactsContext = createContext<ContactsContextType | undefined>(undefined);
 
-export function ContactsProvider({ children }: { children: ReactNode }) {
+export function ContactsProvider({ children }: { children: React.ReactNode }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [emergencyMessage, setEmergencyMessage] = useState(
-    "I'm in an emergency situation and need immediate help. This is an automated SOS message with my current location."
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addContact = (contact: Omit<Contact, 'id'>) => {
-    const newContact = {
-      ...contact,
-      id: Date.now().toString(),
-    };
-    setContacts(prev => [...prev, newContact]);
-  };
+  useEffect(() => {
+    if (!auth.currentUser) {
+      setContacts([]);
+      setLoading(false);
+      return;
+    }
 
-  const updateContact = (updatedContact: Contact) => {
-    setContacts(prev =>
-      prev.map(contact =>
-        contact.id === updatedContact.id ? updatedContact : contact
-      )
+    const contactsRef = collection(db, 'contacts');
+    const q = query(contactsRef, where('userId', '==', auth.currentUser.uid));
+
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const contactsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate(),
+        })) as Contact[];
+        
+        setContacts(contactsList);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('Error fetching contacts:', err);
+        setError('Failed to load contacts');
+        setLoading(false);
+      }
     );
-  };
 
-  const removeContact = (id: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== id));
-  };
-
-  const updateEmergencyMessage = (message: string) => {
-    setEmergencyMessage(message);
-  };
+    return () => unsubscribe();
+  }, []);
 
   return (
-    <ContactsContext.Provider 
-      value={{ 
-        contacts, 
-        emergencyMessage,
-        addContact, 
-        updateContact, 
-        removeContact,
-        updateEmergencyMessage
-      }}
-    >
+    <ContactsContext.Provider value={{ contacts, loading, error }}>
       {children}
     </ContactsContext.Provider>
   );
